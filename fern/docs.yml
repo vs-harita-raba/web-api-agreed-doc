@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://schema.buildwithfern.dev/docs-yml.json
+
+instances:
+  - url: agreed.docs.buildwithfern.com
+title: Agreed | Documentation
+layout:
+  searchbar-placement: header
+  page-width: full
+navigation:
+  - api: Agreed API
+    slug: agreed-api
+    flattened: false
+    layout:
+      - Authentication (OAuth 2.0):
+          summary: docs/pages/authentication-oauth-2-0-overview.mdx
+      - Account:
+          summary: docs/pages/account-overview.mdx
+      - Webhooks:
+          summary: docs/pages/webhooks-overview.mdx
+    summary: docs/pages/collection-overview.mdx
+colors:
+  accent-primary:
+    light: "#3B3A3D"
+    dark: "#7D4BF2"
+  background:
+    light: "#FBFAFF"
+    dark: "#06040C"
+  border:
+    light: "#D1CDD9"
+    dark: "#2E2A36"
+theme:
+  page-actions: toolbar
+  footer-nav: minimal
+logo:
+  dark: docs/assets/logo-dark.png
+  light: docs/assets/logo-light.png
+  height: 20
+favicon: docs/assets/favicon.svg
+css:
+  - styles.css
+  - docs/assets/onboarding-theme.css
+typography:
+  headingsFont:
+    name: Inter
+  bodyFont:
+    name: Inter

@@ -1,0 +1,10 @@
+{
+  "desiredContentHash": "23c723d097228cedb2b6fa337a300534b9b0d68dbbcab717f0160883477874c1",
+  "docsUrl": "https://agreed.docs.buildwithfern.com",
+  "starter": {
+    "repoOwner": "fern-api",
+    "repoName": "docs-starter-internal",
+    "commitSha": "572bf89d934c52de747c1fad185136827eeb0ce7",
+    "label": "2026-11-19-layout3-centered-tabs"
+  }
+}

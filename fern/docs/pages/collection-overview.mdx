@@ -1,0 +1,242 @@
+---
+title: Overview
+---
+
+The Agreed API is organized around REST. It has predictable resource-oriented URLs, accepts JSON-encoded request bodies (OAuth endpoints also accept form-encoded bodies), returns JSON, and uses standard HTTP response codes and verbs.
+
+**Base URL:** `https://agreed.net`
+
+## We support two integration pathways
+
+1. **Zapier, ChatGPT, Claude and other apps:** OAuth 2.0 (authorization code flow, with refresh tokens).
+    
+2. **Custom scripts and direct API requests:** a personal API key (Bearer token).
+    
+
+---
+
+## 🔑 Authentication
+
+Every API request sends a Bearer token in the `Authorization` header:
+
+<Tabs>
+<Tab title="JavaScript" id="cb-0-javascript">
+
+```javascript
+Authorization: Bearer <token>
+
+```
+
+</Tab>
+<Tab title="Python" id="cb-0-python">
+
+```python
+Authorization: Bearer <token>
+
+```
+
+</Tab>
+<Tab title="Java" id="cb-0-java">
+
+```java
+Authorization: Bearer <token>
+
+```
+
+</Tab>
+<Tab title="cURL" id="cb-0-curl">
+
+```curl
+Authorization: Bearer <token>
+
+```
+
+</Tab>
+<Tab title="Shell" id="cb-0-bash">
+
+```bash
+Authorization: Bearer <token>
+
+```
+
+</Tab>
+</Tabs>
+The token is either an **OAuth access token** (starts with `agrat_`) or a **personal API key** (starts with `agr_`). Both identify the same Agreed account and have the same access.
+
+### 1\. Personal API key
+
+For scripts or direct REST requests.
+
+**How to get your API key:**
+
+1. Log in to your Agreed account.
+    
+2. Go to **Settings → Integrations → Claude**.
+    
+3. Create a new key and copy it. It is shown only once.
+    
+4. Send it as `Authorization: Bearer agr_…`
+    
+
+Keys don't expire. Delete a key in the same place to revoke it.
+
+### 2\. OAuth 2.0 (Zapier and other apps)
+
+Agreed is a standard OAuth 2.0 authorization server.
+
+|  |  |
+| --- | --- |
+| Discovery document | `GET /.well-known/oauth-authorization-server` |
+| Authorization URL | `https://agreed.net/oauth/authorize` |
+| Token URL | `https://agreed.net/api/oauth/token` |
+| Revocation URL | `https://agreed.net/api/oauth/revoke` |
+| Scope | `mcp` |
+| Grant types | `authorization_code`, `refresh_token` |
+| PKCE | `S256`. Required for public clients (no secret); optional for confidential clients (with a client secret) |
+| Access token lifetime | 1 hour (`expires_in: 3600`) |
+| Refresh token lifetime | 30 days. Refresh tokens rotate: each refresh returns a new pair and the old refresh token stops working |
+
+**Flow:**
+
+1. Send the user to the Authorization URL. They sign in to Agreed and click **Allow** on the consent screen.
+    
+2. Agreed redirects back to your `redirect_uri` with `?code=…&state=…`.
+    
+3. Exchange the code at the Token URL for an `access_token` and `refresh_token`.
+    
+4. Call the API with `Authorization: Bearer` . When it expires, use the refresh token.
+    
+
+Users can disconnect an app at any time in **Settings → Integrations**.
+
+---
+
+## ⚡ Webhooks (instant triggers)
+
+Subscribe a URL to an event and Agreed sends a `POST` to it with JSON every time the event happens.
+
+| Event | When |
+| --- | --- |
+| `document.viewed` | A recipient opened the document for the first time |
+| `document.signed` | A recipient finished signing their part |
+| `document.completed` | Every recipient has signed |
+
+**Delivery:**
+
+- `POST` with `Content-Type: application/json`, `User-Agent: Agreed-Webhooks/1.0`
+    
+- Headers `X-Agreed-Event` (event type), `X-Agreed-Delivery` (delivery id), `X-Agreed-Signature`
+    
+- Any 2xx response counts as delivered. Otherwise Agreed retries after 5 seconds and again after 30 seconds. The timeout is 10 seconds per attempt.
+    
+- Each event is sent once per subscription. Use the payload `id` to de-duplicate.
+    
+
+**Signature:** `X-Agreed-Signature: t=,v1=`, where `v1 = HMAC-SHA256(secret, ".")`. The signing secret of an endpoint is shown in **Settings → Integrations → Webhooks**.
+
+**Payload:**
+
+<Tabs>
+<Tab title="JavaScript" id="cb-1-javascript">
+
+```javascript
+{
+  "id": "cmwsy9ji40001jzeyuno2yuxp",
+  "type": "document.signed",
+  "createdAt": "2026-11-23T07:34:09.917Z",
+  "data": {
+    "document": { "id": "…", "name": "Non-Disclosure Agreement", "status": "sent", "url": "https://agreed.net/documents/…" },
+    "recipient": { "id": "…", "email": "jane@example.com", "firstName": "Jane", "lastName": "Doe", "viewedAt": "…", "signedAt": "…" }
+  }
+}
+
+```
+
+</Tab>
+<Tab title="Python" id="cb-1-python">
+
+```python
+{
+  "id": "cmwsy9ji40001jzeyuno2yuxp",
+  "type": "document.signed",
+  "createdAt": "2026-11-23T07:34:09.917Z",
+  "data": {
+    "document": { "id": "…", "name": "Non-Disclosure Agreement", "status": "sent", "url": "https://agreed.net/documents/…" },
+    "recipient": { "id": "…", "email": "jane@example.com", "firstName": "Jane", "lastName": "Doe", "viewedAt": "…", "signedAt": "…" }
+  }
+}
+
+```
+
+</Tab>
+<Tab title="Java" id="cb-1-java">
+
+```java
+{
+  "id": "cmwsy9ji40001jzeyuno2yuxp",
+  "type": "document.signed",
+  "createdAt": "2026-11-23T07:34:09.917Z",
+  "data": {
+    "document": { "id": "…", "name": "Non-Disclosure Agreement", "status": "sent", "url": "https://agreed.net/documents/…" },
+    "recipient": { "id": "…", "email": "jane@example.com", "firstName": "Jane", "lastName": "Doe", "viewedAt": "…", "signedAt": "…" }
+  }
+}
+
+```
+
+</Tab>
+<Tab title="cURL" id="cb-1-curl">
+
+```curl
+{
+  "id": "cmwsy9ji40001jzeyuno2yuxp",
+  "type": "document.signed",
+  "createdAt": "2026-11-23T07:34:09.917Z",
+  "data": {
+    "document": { "id": "…", "name": "Non-Disclosure Agreement", "status": "sent", "url": "https://agreed.net/documents/…" },
+    "recipient": { "id": "…", "email": "jane@example.com", "firstName": "Jane", "lastName": "Doe", "viewedAt": "…", "signedAt": "…" }
+  }
+}
+
+```
+
+</Tab>
+<Tab title="Shell" id="cb-1-bash">
+
+```bash
+{
+  "id": "cmwsy9ji40001jzeyuno2yuxp",
+  "type": "document.signed",
+  "createdAt": "2026-11-23T07:34:09.917Z",
+  "data": {
+    "document": { "id": "…", "name": "Non-Disclosure Agreement", "status": "sent", "url": "https://agreed.net/documents/…" },
+    "recipient": { "id": "…", "email": "jane@example.com", "firstName": "Jane", "lastName": "Doe", "viewedAt": "…", "signedAt": "…" }
+  }
+}
+
+```
+
+</Tab>
+</Tabs>
+`document.completed` has no `recipient` object.
+
+---
+
+## Errors
+
+Errors return a JSON body `{ "error": "...", "error_description": "..." }` (or `{ "error": "..." }`).
+
+| Code | Meaning |
+| --- | --- |
+| 200 / 201 | Success |
+| 400 | Invalid request (missing or wrong parameters) |
+| 401 | Missing, invalid or expired token (`invalid_token`) or bad client credentials (`invalid_client`) |
+| 404 | Not found |
+| 429 | Too many requests. Slow down and retry |
+| 500 | Something went wrong on our side |
+
+## Rate limits
+
+- Token endpoint: 60 requests per minute per IP
+    
+- Webhook subscriptions: 30 per minute per account; at most 50 webhook endpoints per account
