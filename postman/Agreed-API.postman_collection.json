@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Agreed API",
-    "description": "The Agreed API is organized around REST. It has predictable resource-oriented URLs, accepts JSON-encoded request bodies (OAuth endpoints also accept form-encoded bodies), returns JSON, and uses standard HTTP response codes and verbs.\n\n**Base URL:** `https://agreed.net`\n\n## We support two integration pathways\n\n1. **Zapier, ChatGPT, Claude and other apps:** OAuth 2.0 (authorization code flow, with refresh tokens).\n2. **Custom scripts and direct API requests:** a personal API key (Bearer token).\n\n---\n\n## 🔑 Authentication\n\nEvery API request sends a Bearer token in the `Authorization` header:\n\n```\nAuthorization: Bearer <token>\n```\n\nThe token is either an **OAuth access token** (starts with `agrat_`) or a **personal API key** (starts with `agr_`). Both identify the same Agreed account and have the same access.\n\n### 1. Personal API key\n\nFor scripts or direct REST requests.\n\n**How to get your API key:**\n1. Log in to your Agreed account.\n2. Go to **Settings → Integrations → Claude**.\n3. Create a new key and copy it. It is shown only once.\n4. Send it as `Authorization: Bearer agr_…`\n\nKeys don't expire. Delete a key in the same place to revoke it.\n\n### 2. OAuth 2.0 (Zapier and other apps)\n\nAgreed is a standard OAuth 2.0 authorization server.\n\n| | |\n|---|---|\n| Discovery document | `GET /.well-known/oauth-authorization-server` |\n| Authorization URL | `https://agreed.net/oauth/authorize` |\n| Token URL | `https://agreed.net/api/oauth/token` |\n| Revocation URL | `https://agreed.net/api/oauth/revoke` |\n| Scope | `mcp` |\n| Grant types | `authorization_code`, `refresh_token` |\n| PKCE | `S256`. Required for public clients (no secret); optional for confidential clients (with a client secret) |\n| Access token lifetime | 1 hour (`expires_in: 3600`) |\n| Refresh token lifetime | 30 days. Refresh tokens rotate: each refresh returns a new pair and the old refresh token stops working |\n\n**Flow:**\n1. Send the user to the Authorization URL. They sign in to Agreed and click **Allow** on the consent screen.\n2. Agreed redirects back to your `redirect_uri` with `?code=…&state=…`.\n3. Exchange the code at the Token URL for an `access_token` and `refresh_token`.\n4. Call the API with `Authorization: Bearer <access_token>`. When it expires, use the refresh token.\n\nUsers can disconnect an app at any time in **Settings → Integrations**.\n\n---\n\n## ⚡ Webhooks (instant triggers)\n\nSubscribe a URL to an event and Agreed sends a `POST` to it with JSON every time the event happens.\n\n| Event | When |\n|---|---|\n| `document.viewed` | A recipient opened the document for the first time |\n| `document.signed` | A recipient finished signing their part |\n| `document.completed` | Every recipient has signed |\n\n**Delivery:**\n- `POST` with `Content-Type: application/json`, `User-Agent: Agreed-Webhooks/1.0`\n- Headers `X-Agreed-Event` (event type), `X-Agreed-Delivery` (delivery id), `X-Agreed-Signature`\n- Any 2xx response counts as delivered. Otherwise Agreed retries after 5 seconds and again after 30 seconds. The timeout is 10 seconds per attempt.\n- Each event is sent once per subscription. Use the payload `id` to de-duplicate.\n\n**Signature:** `X-Agreed-Signature: t=<unix seconds>,v1=<hex>`, where `v1 = HMAC-SHA256(secret, \"<t>.<raw body>\")`. The signing secret of an endpoint is shown in **Settings → Integrations → Webhooks**.\n\n**Payload:**\n```json\n{\n  \"id\": \"cmwsy9ji40001jzeyuno2yuxp\",\n  \"type\": \"document.signed\",\n  \"createdAt\": \"2026-11-23T07:34:09.917Z\",\n  \"data\": {\n    \"document\": { \"id\": \"…\", \"name\": \"Non-Disclosure Agreement\", \"status\": \"sent\", \"url\": \"https://agreed.net/documents/…\" },\n    \"recipient\": { \"id\": \"…\", \"email\": \"jane@example.com\", \"firstName\": \"Jane\", \"lastName\": \"Doe\", \"viewedAt\": \"…\", \"signedAt\": \"…\" }\n  }\n}\n```\n`document.completed` has no `recipient` object.\n\n---\n\n## Errors\n\nErrors return a JSON body `{ \"error\": \"...\", \"error_description\": \"...\" }` (or `{ \"error\": \"...\" }`).\n\n| Code | Meaning |\n|---|---|\n| 200 / 201 | Success |\n| 400 | Invalid request (missing or wrong parameters) |\n| 401 | Missing, invalid or expired token (`invalid_token`) or bad client credentials (`invalid_client`) |\n| 404 | Not found |\n| 429 | Too many requests. Slow down and retry |\n| 500 | Something went wrong on our side |\n\n## Rate limits\n\n- Token endpoint: 60 requests per minute per IP\n- Webhook subscriptions: 30 per minute per account; at most 50 webhook endpoints per account\n",
+    "description": "The Agreed API is organized around REST. It has predictable resource-oriented URLs, accepts JSON-encoded request bodies (OAuth endpoints also accept form-encoded bodies), returns JSON, and uses standard HTTP response codes and verbs.\n\n**Base URL:** `https://agreed.net`\n\n## We support two integration pathways\n\n1. **Zapier, ChatGPT, Claude and other apps:** OAuth 2.0 (authorization code flow, with refresh tokens).\n2. **Custom scripts and direct API requests:** a personal API key (Bearer token).\n\n---\n\n## 🔑 Authentication\n\nEvery API request sends a Bearer token in the `Authorization` header:\n\n```\nAuthorization: Bearer <token>\n```\n\nThe token is either an **OAuth access token** (starts with `agrat_`) or a **personal API key** (starts with `agr_`). Both identify the same Agreed account and have the same access.\n\n### 1. Personal API key\n\nFor scripts or direct REST requests.\n\n**How to get your API key:**\n1. Log in to your Agreed account.\n2. Go to **Settings → Integrations → Claude**.\n3. Create a new key and copy it. It is shown only once.\n4. Send it as `Authorization: Bearer agr_…`\n\nKeys don't expire. Delete a key in the same place to revoke it.\n\n### 2. OAuth 2.0 (Zapier and other apps)\n\nAgreed is a standard OAuth 2.0 authorization server.\n\n| Setting | Value |\n|---|---|\n| Discovery document | `GET /.well-known/oauth-authorization-server` |\n| Authorization URL | `https://agreed.net/oauth/authorize` |\n| Token URL | `https://agreed.net/api/oauth/token` |\n| Revocation URL | `https://agreed.net/api/oauth/revoke` |\n| Scope | `mcp` |\n| Grant types | `authorization_code`, `refresh_token` |\n| PKCE | `S256`. Required for public clients (no secret); optional for confidential clients (with a client secret) |\n| Access token lifetime | 1 hour (`expires_in: 3600`) |\n| Refresh token lifetime | 30 days. Refresh tokens rotate: each refresh returns a new pair and the old refresh token stops working |\n\n**Flow:**\n1. Send the user to the Authorization URL. They sign in to Agreed and click **Allow** on the consent screen.\n2. Agreed redirects back to your `redirect_uri` with `?code=…&state=…`.\n3. Exchange the code at the Token URL for an `access_token` and `refresh_token`.\n4. Call the API with `Authorization: Bearer <access_token>`. When it expires, use the refresh token.\n\nUsers can disconnect an app at any time in **Settings → Integrations**.\n\n---\n\n## ⚡ Webhooks (instant triggers)\n\nSubscribe a URL to an event and Agreed sends a `POST` to it with JSON every time the event happens.\n\n| Event | When |\n|---|---|\n| `document.viewed` | A recipient opened the document for the first time |\n| `document.signed` | A recipient finished signing their part |\n| `document.completed` | Every recipient has signed |\n\n**Delivery:**\n- `POST` with `Content-Type: application/json`, `User-Agent: Agreed-Webhooks/1.0`\n- Headers `X-Agreed-Event` (event type), `X-Agreed-Delivery` (delivery id), `X-Agreed-Signature`\n- Any 2xx response counts as delivered. Otherwise Agreed retries after 5 seconds and again after 30 seconds. The timeout is 10 seconds per attempt.\n- Each event is sent once per subscription. Use the payload `id` to de-duplicate.\n\n**Signature:** `X-Agreed-Signature: t=<unix seconds>,v1=<hex>`, where `v1 = HMAC-SHA256(secret, \"<t>.<raw body>\")`. The signing secret of an endpoint is shown in **Settings → Integrations → Webhooks**.\n\n**Payload:**\n```json\n{\n  \"id\": \"cmwsy9ji40001jzeyuno2yuxp\",\n  \"type\": \"document.signed\",\n  \"createdAt\": \"2026-11-23T07:34:09.917Z\",\n  \"data\": {\n    \"document\": { \"id\": \"…\", \"name\": \"Non-Disclosure Agreement\", \"status\": \"sent\", \"url\": \"https://agreed.net/documents/…\" },\n    \"recipient\": { \"id\": \"…\", \"email\": \"jane@example.com\", \"firstName\": \"Jane\", \"lastName\": \"Doe\", \"viewedAt\": \"…\", \"signedAt\": \"…\" }\n  }\n}\n```\n`document.completed` has no `recipient` object.\n\n---\n\n## Errors\n\nErrors return a JSON body `{ \"error\": \"...\", \"error_description\": \"...\" }` (or `{ \"error\": \"...\" }`).\n\n| Code | Meaning |\n|---|---|\n| 200 / 201 | Success |\n| 400 | Invalid request (missing or wrong parameters) |\n| 401 | Missing, invalid or expired token (`invalid_token`) or bad client credentials (`invalid_client`) |\n| 404 | Not found |\n| 429 | Too many requests. Slow down and retry |\n| 500 | Something went wrong on our side |\n\n## Rate limits\n\n- Token endpoint: 60 requests per minute per IP\n- Webhook subscriptions: 30 per minute per account; at most 50 webhook endpoints per account\n",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -1142,6 +1142,680 @@
                 }
               ],
               "body": "{\n  \"error\": \"Pass ?event=document.viewed | document.signed | document.completed\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Zapier",
+      "description": "The requests the **Agreed Zapier integration** makes, one folder per trigger. Authentication is the OAuth 2.0 flow in *Authentication (OAuth 2.0)* (Zapier sends `Authorization: Bearer {{bundle.authData.access_token}}` on every request).\n\nTo try these in Postman, set `zapierHookUrl` in the environment to any URL that accepts POSTs (e.g. a webhook.site URL), and `hookId` to the `id` returned by Subscribe.",
+      "item": [
+        {
+          "name": "Test connection",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me"
+              ]
+            },
+            "description": "**Zapier:** Authentication → Step 5 \"Test your Authentication\".\n\nZapier calls this after the user connects Agreed. The connection is labelled with `{{bundle.inputData.email}}`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "me"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"cmabc123def456\",\n  \"email\": \"jane@acme.com\",\n  \"name\": \"Jane Doe\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "me"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"invalid_token\",\n  \"error_description\": \"Missing, invalid or expired access token.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Trigger: Document Completed",
+          "description": "**Zapier trigger** `document_completed` (REST Hook): Triggers when every recipient has signed a document.\n\n| Zapier setting | Value |\n|---|---|\n| Key | `document_completed` |\n| Label | Document Completed |\n| Subscribe | `POST /api/v1/hooks` with body `hookUrl = {{bundle.targetUrl}}`, `event = document.completed` |\n| Unsubscribe | `DELETE /api/v1/hooks/{{bundle.subscribeData.id}}` |\n| Perform List | `GET /api/v1/hooks/sample?event=document.completed` |\n| Perform | Default (the webhook body as-is) |",
+          "item": [
+            {
+              "name": "Subscribe (Zap turned on)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"hookUrl\": \"{{zapierHookUrl}}\",\n  \"event\": \"document.completed\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Zapier sends this when a user turns on a Zap that uses **Document Completed**. In Zapier the body is `{ \"hookUrl\": \"{{bundle.targetUrl}}\", \"event\": \"document.completed\" }`. The returned `id` becomes `{{bundle.subscribeData.id}}`."
+              },
+              "response": [
+                {
+                  "name": "201 Created",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/hooks",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "hooks"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"hookUrl\": \"{{zapierHookUrl}}\",\n  \"event\": \"document.completed\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"id\": \"cmwsy9ji40001jzeyuno2yuxp\",\n  \"url\": \"https://hooks.zapier.com/hooks/standard/123/abc/\",\n  \"event\": \"document.completed\",\n  \"createdAt\": \"2026-11-23T07:34:09.917Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "Unsubscribe (Zap turned off)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks/{{hookId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks",
+                    "{{hookId}}"
+                  ]
+                },
+                "description": "Zapier sends this when the Zap is turned off or deleted. In Zapier the URL is `/api/v1/hooks/{{bundle.subscribeData.id}}`."
+              },
+              "response": [
+                {
+                  "name": "200 OK",
+                  "originalRequest": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/hooks/{{hookId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "hooks",
+                        "{{hookId}}"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"ok\": true\n}"
+                }
+              ]
+            },
+            {
+              "name": "Perform List (sample data)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks/sample?event=document.completed",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks",
+                    "sample"
+                  ],
+                  "query": [
+                    {
+                      "key": "event",
+                      "value": "document.completed"
+                    }
+                  ]
+                },
+                "description": "Zapier calls this to load sample **Document Completed** events while the user maps fields in the Zap editor."
+              },
+              "response": [
+                {
+                  "name": "200 OK",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/hooks/sample?event=document.completed",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "hooks",
+                        "sample"
+                      ],
+                      "query": [
+                        {
+                          "key": "event",
+                          "value": "document.completed"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "[\n  {\n    \"id\": \"sample_document_completed\",\n    \"type\": \"document.completed\",\n    \"createdAt\": \"2026-11-23T07:34:09.917Z\",\n    \"data\": {\n      \"document\": {\n        \"id\": \"doc_sample\",\n        \"name\": \"Sample NDA\",\n        \"status\": \"completed\",\n        \"url\": \"https://agreed.net/documents/doc_sample\"\n      }\n    }\n  }\n]"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Trigger: Recipient Signed",
+          "description": "**Zapier trigger** `recipient_signed` (REST Hook): Triggers when a recipient finishes signing a document.\n\n| Zapier setting | Value |\n|---|---|\n| Key | `recipient_signed` |\n| Label | Recipient Signed |\n| Subscribe | `POST /api/v1/hooks` with body `hookUrl = {{bundle.targetUrl}}`, `event = document.signed` |\n| Unsubscribe | `DELETE /api/v1/hooks/{{bundle.subscribeData.id}}` |\n| Perform List | `GET /api/v1/hooks/sample?event=document.signed` |\n| Perform | Default (the webhook body as-is) |",
+          "item": [
+            {
+              "name": "Subscribe (Zap turned on)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"hookUrl\": \"{{zapierHookUrl}}\",\n  \"event\": \"document.signed\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Zapier sends this when a user turns on a Zap that uses **Recipient Signed**. In Zapier the body is `{ \"hookUrl\": \"{{bundle.targetUrl}}\", \"event\": \"document.signed\" }`. The returned `id` becomes `{{bundle.subscribeData.id}}`."
+              },
+              "response": [
+                {
+                  "name": "201 Created",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/hooks",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "hooks"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"hookUrl\": \"{{zapierHookUrl}}\",\n  \"event\": \"document.signed\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"id\": \"cmwsy9ji40001jzeyuno2yuxp\",\n  \"url\": \"https://hooks.zapier.com/hooks/standard/123/abc/\",\n  \"event\": \"document.signed\",\n  \"createdAt\": \"2026-11-23T07:34:09.917Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "Unsubscribe (Zap turned off)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks/{{hookId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks",
+                    "{{hookId}}"
+                  ]
+                },
+                "description": "Zapier sends this when the Zap is turned off or deleted. In Zapier the URL is `/api/v1/hooks/{{bundle.subscribeData.id}}`."
+              },
+              "response": [
+                {
+                  "name": "200 OK",
+                  "originalRequest": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/hooks/{{hookId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "hooks",
+                        "{{hookId}}"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"ok\": true\n}"
+                }
+              ]
+            },
+            {
+              "name": "Perform List (sample data)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks/sample?event=document.signed",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks",
+                    "sample"
+                  ],
+                  "query": [
+                    {
+                      "key": "event",
+                      "value": "document.signed"
+                    }
+                  ]
+                },
+                "description": "Zapier calls this to load sample **Recipient Signed** events while the user maps fields in the Zap editor."
+              },
+              "response": [
+                {
+                  "name": "200 OK",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/hooks/sample?event=document.signed",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "hooks",
+                        "sample"
+                      ],
+                      "query": [
+                        {
+                          "key": "event",
+                          "value": "document.signed"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "[\n  {\n    \"id\": \"sample_document_signed\",\n    \"type\": \"document.signed\",\n    \"createdAt\": \"2026-11-23T07:34:09.917Z\",\n    \"data\": {\n      \"document\": {\n        \"id\": \"doc_sample\",\n        \"name\": \"Sample NDA\",\n        \"status\": \"sent\",\n        \"url\": \"https://agreed.net/documents/doc_sample\"\n      },\n      \"recipient\": {\n        \"id\": \"rcp_sample\",\n        \"email\": \"jane@example.com\",\n        \"firstName\": \"Jane\",\n        \"lastName\": \"Doe\",\n        \"viewedAt\": \"2026-11-23T07:30:00.000Z\",\n        \"signedAt\": \"2026-11-23T07:34:09.000Z\"\n      }\n    }\n  }\n]"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Trigger: Document Viewed",
+          "description": "**Zapier trigger** `document_viewed` (REST Hook): Triggers when a recipient opens a document for the first time.\n\n| Zapier setting | Value |\n|---|---|\n| Key | `document_viewed` |\n| Label | Document Viewed |\n| Subscribe | `POST /api/v1/hooks` with body `hookUrl = {{bundle.targetUrl}}`, `event = document.viewed` |\n| Unsubscribe | `DELETE /api/v1/hooks/{{bundle.subscribeData.id}}` |\n| Perform List | `GET /api/v1/hooks/sample?event=document.viewed` |\n| Perform | Default (the webhook body as-is) |",
+          "item": [
+            {
+              "name": "Subscribe (Zap turned on)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"hookUrl\": \"{{zapierHookUrl}}\",\n  \"event\": \"document.viewed\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Zapier sends this when a user turns on a Zap that uses **Document Viewed**. In Zapier the body is `{ \"hookUrl\": \"{{bundle.targetUrl}}\", \"event\": \"document.viewed\" }`. The returned `id` becomes `{{bundle.subscribeData.id}}`."
+              },
+              "response": [
+                {
+                  "name": "201 Created",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/hooks",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "hooks"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"hookUrl\": \"{{zapierHookUrl}}\",\n  \"event\": \"document.viewed\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"id\": \"cmwsy9ji40001jzeyuno2yuxp\",\n  \"url\": \"https://hooks.zapier.com/hooks/standard/123/abc/\",\n  \"event\": \"document.viewed\",\n  \"createdAt\": \"2026-11-23T07:34:09.917Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "Unsubscribe (Zap turned off)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks/{{hookId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks",
+                    "{{hookId}}"
+                  ]
+                },
+                "description": "Zapier sends this when the Zap is turned off or deleted. In Zapier the URL is `/api/v1/hooks/{{bundle.subscribeData.id}}`."
+              },
+              "response": [
+                {
+                  "name": "200 OK",
+                  "originalRequest": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/hooks/{{hookId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "hooks",
+                        "{{hookId}}"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"ok\": true\n}"
+                }
+              ]
+            },
+            {
+              "name": "Perform List (sample data)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks/sample?event=document.viewed",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks",
+                    "sample"
+                  ],
+                  "query": [
+                    {
+                      "key": "event",
+                      "value": "document.viewed"
+                    }
+                  ]
+                },
+                "description": "Zapier calls this to load sample **Document Viewed** events while the user maps fields in the Zap editor."
+              },
+              "response": [
+                {
+                  "name": "200 OK",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/hooks/sample?event=document.viewed",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "hooks",
+                        "sample"
+                      ],
+                      "query": [
+                        {
+                          "key": "event",
+                          "value": "document.viewed"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "[\n  {\n    \"id\": \"sample_document_viewed\",\n    \"type\": \"document.viewed\",\n    \"createdAt\": \"2026-11-23T07:34:09.917Z\",\n    \"data\": {\n      \"document\": {\n        \"id\": \"doc_sample\",\n        \"name\": \"Sample NDA\",\n        \"status\": \"sent\",\n        \"url\": \"https://agreed.net/documents/doc_sample\"\n      },\n      \"recipient\": {\n        \"id\": \"rcp_sample\",\n        \"email\": \"jane@example.com\",\n        \"firstName\": \"Jane\",\n        \"lastName\": \"Doe\",\n        \"viewedAt\": \"2026-11-23T07:30:00.000Z\"\n      }\n    }\n  }\n]"
+                }
+              ]
             }
           ]
         }

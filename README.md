@@ -29,6 +29,10 @@ Base URL: `https://agreed.net`
 
 Events: `document.viewed`, `document.signed`, `document.completed`.
 
+**Zapier** (the requests the Zapier integration makes)
+- Test connection: `GET /api/v1/me`
+- One folder per trigger (Document Completed, Recipient Signed, Document Viewed), each with Subscribe, Unsubscribe and Perform List, plus the matching Zapier settings in the folder description.
+
 ## Publishing the docs
 
 1. In Postman, use **Import** to add both files.
