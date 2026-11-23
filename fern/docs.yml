@@ -11,12 +11,14 @@ navigation:
     slug: agreed-api
     flattened: false
     layout:
-      - Authentication (OAuth 2.0):
+      - Authentication:
           summary: docs/pages/authentication-oauth-2-0-overview.mdx
       - Account:
           summary: docs/pages/account-overview.mdx
       - Webhooks:
           summary: docs/pages/webhooks-overview.mdx
+      - Zapier:
+          summary: docs/pages/zapier-overview.mdx
     summary: docs/pages/collection-overview.mdx
 colors:
   accent-primary:

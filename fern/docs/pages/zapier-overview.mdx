@@ -1,0 +1,37 @@
+---
+title: Overview
+---
+
+The requests the **Agreed Zapier integration** makes. Zapier sends `Authorization: Bearer {{bundle.authData.access_token}}` on every request, using the OAuth 2.0 flow in **Authentication**.
+
+## Authentication
+
+| Zapier setting | Value |
+|---|---|
+| Type | OAuth v2 |
+| Authorization URL | `https://agreed.net/oauth/authorize` |
+| Access token request | `POST https://agreed.net/api/oauth/token` |
+| Refresh token request | `POST https://agreed.net/api/oauth/token` |
+| Scope | `mcp` |
+| Automatically refresh token | On |
+| Test | `GET https://agreed.net/api/v1/me` |
+| Connection label | `{{bundle.inputData.email}}` |
+
+## Triggers (REST Hook)
+
+| Trigger | Key | Event |
+|---|---|---|
+| Document Completed | `document_completed` | `document.completed` |
+| Recipient Signed | `recipient_signed` | `document.signed` |
+| Document Viewed | `document_viewed` | `document.viewed` |
+
+Every trigger is set up the same way. Only the event changes:
+
+| Zapier setting | Value |
+|---|---|
+| Subscribe | `POST /api/v1/hooks` with body `hookUrl = {{bundle.targetUrl}}`, `event = <event>` |
+| Unsubscribe | `DELETE /api/v1/hooks/{{bundle.subscribeData.id}}` |
+| Perform List | `GET /api/v1/hooks/sample?event=<event>` |
+| Perform | Default (the webhook body as-is) |
+
+Each event has an `id`, which Zapier uses to de-duplicate.

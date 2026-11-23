@@ -6,7 +6,7 @@
   },
   "tags": [
     {
-      "name": "Authentication (OAuth 2.0)",
+      "name": "Authentication",
       "description": "Standard OAuth 2.0 authorization code flow. These requests don't use the Bearer token."
     },
     {
@@ -16,6 +16,10 @@
     {
       "name": "Webhooks",
       "description": "REST-hook subscriptions for instant triggers. See the collection overview for the payload format and signature."
+    },
+    {
+      "name": "Zapier",
+      "description": "The requests the Agreed Zapier integration makes: the connection test, plus Subscribe / Unsubscribe / Perform List for each REST-hook trigger."
     }
   ],
   "paths": {
@@ -253,7 +257,7 @@
     "/api/oauth/token": {
       "post": {
         "tags": [
-          "Authentication (OAuth 2.0)"
+          "Authentication"
         ],
         "summary": "Exchange code for tokens",
         "security": [],
@@ -408,7 +412,7 @@
           }
         },
         "x-fern-sdk-group-name": [
-          "Authentication (OAuth 2.0)"
+          "Authentication"
         ],
         "x-fern-sdk-method-name": "Exchange code for tokens"
       }
@@ -416,7 +420,7 @@
     "/oauth/authorize": {
       "get": {
         "tags": [
-          "Authentication (OAuth 2.0)"
+          "Authentication"
         ],
         "summary": "Authorize (browser redirect)",
         "security": [],
@@ -475,7 +479,7 @@
         "description": "Open this URL **in a browser**. It isn't an API call. The user signs in to Agreed (if needed) and sees a consent screen. On **Allow**, Agreed redirects to:\n\n```\n{redirect_uri}?code=agrac_…&state=random-state-123\n```\n\nOn **Deny**: `{redirect_uri}?error=access_denied&state=…`\n\nThe code is single-use and expires after 10 minutes.",
         "operationId": "getOauthAuthorize",
         "x-fern-sdk-group-name": [
-          "Authentication (OAuth 2.0)"
+          "Authentication"
         ],
         "x-fern-sdk-method-name": "Authorize (browser redirect)"
       }
@@ -483,7 +487,7 @@
     "/api/oauth/revoke": {
       "post": {
         "tags": [
-          "Authentication (OAuth 2.0)"
+          "Authentication"
         ],
         "summary": "Revoke token",
         "security": [],
@@ -521,7 +525,7 @@
           }
         },
         "x-fern-sdk-group-name": [
-          "Authentication (OAuth 2.0)"
+          "Authentication"
         ],
         "x-fern-sdk-method-name": "Revoke token"
       }
@@ -705,52 +709,10 @@
         "x-fern-sdk-method-name": "List recent events (sample data)"
       }
     },
-    "/api/v1/hooks/%7BhookId%7D": {
-      "delete": {
-        "tags": [
-          "Webhooks"
-        ],
-        "summary": "Unsubscribe",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "ok"
-                  ],
-                  "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    }
-                  }
-                },
-                "examples": {
-                  "200_OK": {
-                    "value": {
-                      "ok": true
-                    },
-                    "summary": "200 OK"
-                  }
-                }
-              }
-            },
-            "description": "OK"
-          }
-        },
-        "description": "Removes a subscription by the `id` returned from Subscribe. It succeeds even if the subscription is already gone.",
-        "operationId": "deleteApiV1Hooks%7bhookid%7d",
-        "x-fern-sdk-group-name": [
-          "Webhooks"
-        ],
-        "x-fern-sdk-method-name": "Unsubscribe"
-      }
-    },
     "/api/oauth/token#postApiOauthToken2": {
       "post": {
         "tags": [
-          "Authentication (OAuth 2.0)"
+          "Authentication"
         ],
         "summary": "Refresh access token",
         "security": [],
@@ -867,7 +829,7 @@
           }
         },
         "x-fern-sdk-group-name": [
-          "Authentication (OAuth 2.0)"
+          "Authentication"
         ],
         "x-fern-sdk-method-name": "Refresh access token"
       }
@@ -875,7 +837,7 @@
     "/.well-known/oauth-authorization-server": {
       "get": {
         "tags": [
-          "Authentication (OAuth 2.0)"
+          "Authentication"
         ],
         "summary": "Authorization server metadata",
         "security": [],
@@ -988,9 +950,1302 @@
         "description": "OAuth 2.0 server metadata (RFC 8414): every endpoint URL and the supported grants, PKCE methods and scopes.",
         "operationId": "get.well-knownOauth-authorization-server",
         "x-fern-sdk-group-name": [
-          "Authentication (OAuth 2.0)"
+          "Authentication"
         ],
         "x-fern-sdk-method-name": "Authorization server metadata"
+      }
+    },
+    "/api/v1/hooks/{hookId}": {
+      "delete": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Unsubscribe",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "examples": {
+                  "200_OK": {
+                    "value": {
+                      "ok": true
+                    },
+                    "summary": "200 OK"
+                  }
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "description": "Removes a subscription by the `id` returned from Subscribe. It succeeds even if the subscription is already gone.",
+        "operationId": "deleteApiV1Hook",
+        "x-fern-sdk-group-name": [
+          "Webhooks"
+        ],
+        "x-fern-sdk-method-name": "Unsubscribe",
+        "parameters": [
+          {
+            "name": "hookId",
+            "in": "path",
+            "required": true,
+            "description": "The `id` returned by Subscribe.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "cmwsy9ji40001jzeyuno2yuxp"
+          }
+        ]
+      }
+    },
+    "/api/v1/me#zapierTestConnection": {
+      "get": {
+        "tags": [
+          "Zapier"
+        ],
+        "summary": "Test connection",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "email",
+                    "name"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    }
+                  }
+                },
+                "examples": {
+                  "200_OK": {
+                    "value": {
+                      "id": "cmabc123def456",
+                      "name": "Jane Doe",
+                      "email": "jane@acme.com"
+                    },
+                    "summary": "200 OK"
+                  }
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": {
+                  "401_Unauthorized": {
+                    "value": {
+                      "error": "invalid_token",
+                      "error_description": "Missing, invalid or expired access token."
+                    },
+                    "summary": "401 Unauthorized"
+                  }
+                }
+              }
+            },
+            "description": "Unauthorized"
+          }
+        },
+        "description": "Zapier → Authentication → Step 5 **\"Test your Authentication\"**. Zapier calls this after the user connects Agreed and labels the connection with `{{bundle.inputData.email}}`.",
+        "operationId": "zapierTestConnection",
+        "x-fern-sdk-group-name": [
+          "Zapier"
+        ],
+        "x-fern-sdk-method-name": "Test connection"
+      }
+    },
+    "/api/v1/hooks#zapierSubscribeDocumentCompleted": {
+      "post": {
+        "tags": [
+          "Zapier"
+        ],
+        "summary": "Subscribe (Zap turned on)",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "url",
+                    "event",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "event": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
+                "examples": {
+                  "201_Created": {
+                    "value": {
+                      "id": "cmwsy9ji40001jzeyuno2yuxp",
+                      "url": "https://hooks.zapier.com/hooks/standard/123/abc/",
+                      "event": "document.completed",
+                      "createdAt": "2026-11-23T07:34:09.917Z"
+                    },
+                    "summary": "201 Created"
+                  }
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": {
+                  "400_Bad_request": {
+                    "value": {
+                      "error": "Send { hookUrl, event } where event is one of: document.viewed, document.signed, document.completed."
+                    },
+                    "summary": "400 Bad request"
+                  }
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": {
+                  "401_Unauthorized": {
+                    "value": {
+                      "error": "invalid_token",
+                      "error_description": "Missing, invalid or expired access token."
+                    },
+                    "summary": "401 Unauthorized"
+                  }
+                }
+              }
+            },
+            "description": "Unauthorized"
+          }
+        },
+        "description": "**Zapier trigger `document_completed`** (REST Hook): Triggers when every recipient has signed a document.\n\nZapier sends this when a user turns on a Zap that uses **Document Completed**. In Zapier the body is `{ \"hookUrl\": \"{{bundle.targetUrl}}\", \"event\": \"document.completed\" }`; the returned `id` becomes `{{bundle.subscribeData.id}}`.",
+        "operationId": "zapierSubscribeDocumentCompleted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "hookUrl",
+                  "event"
+                ],
+                "properties": {
+                  "event": {
+                    "type": "string",
+                    "enum": [
+                      "document.completed"
+                    ],
+                    "description": "Fixed for this trigger."
+                  },
+                  "hookUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              },
+              "example": {
+                "hookUrl": "https://hooks.zapier.com/hooks/standard/123/abc/",
+                "event": "document.completed"
+              }
+            }
+          }
+        },
+        "x-fern-sdk-group-name": [
+          "Zapier",
+          "Document Completed"
+        ],
+        "x-fern-sdk-method-name": "Subscribe (Zap turned on)"
+      }
+    },
+    "/api/v1/hooks/{hookId}#zapierUnsubscribeDocumentCompleted": {
+      "delete": {
+        "tags": [
+          "Zapier"
+        ],
+        "summary": "Unsubscribe (Zap turned off)",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "examples": {
+                  "200_OK": {
+                    "value": {
+                      "ok": true
+                    },
+                    "summary": "200 OK"
+                  }
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "description": "Zapier sends this when the Zap is turned off or deleted. In Zapier the URL is `/api/v1/hooks/{{bundle.subscribeData.id}}`.",
+        "operationId": "zapierUnsubscribeDocumentCompleted",
+        "x-fern-sdk-group-name": [
+          "Zapier",
+          "Document Completed"
+        ],
+        "x-fern-sdk-method-name": "Unsubscribe (Zap turned off)",
+        "parameters": [
+          {
+            "name": "hookId",
+            "in": "path",
+            "required": true,
+            "description": "The `id` returned by Subscribe.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "cmwsy9ji40001jzeyuno2yuxp"
+          }
+        ]
+      }
+    },
+    "/api/v1/hooks/sample#zapierPerformListDocumentCompleted": {
+      "get": {
+        "tags": [
+          "Zapier"
+        ],
+        "summary": "Perform List (sample data)",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "type",
+                      "createdAt",
+                      "data"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "data": {
+                        "type": "object",
+                        "required": [
+                          "document",
+                          "recipient"
+                        ],
+                        "properties": {
+                          "document": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "name",
+                              "status",
+                              "url"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string",
+                                "format": "uri"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "recipient": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "email",
+                              "firstName",
+                              "lastName",
+                              "viewedAt",
+                              "signedAt"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "email": {
+                                "type": "string",
+                                "format": "email"
+                              },
+                              "lastName": {
+                                "type": "string"
+                              },
+                              "signedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "viewedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "firstName": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "200_OK": {
+                    "value": [
+                      {
+                        "id": "cmwsy9ji40001jzeyuno2yuxp",
+                        "data": {
+                          "document": {
+                            "id": "cmdoc123",
+                            "url": "https://agreed.net/documents/cmdoc123",
+                            "name": "Non-Disclosure Agreement",
+                            "status": "sent"
+                          },
+                          "recipient": {
+                            "id": "cmrcp456",
+                            "email": "jane@example.com",
+                            "lastName": "Doe",
+                            "signedAt": "2026-11-23T07:34:09.000Z",
+                            "viewedAt": "2026-11-23T07:30:00.000Z",
+                            "firstName": "Jane"
+                          }
+                        },
+                        "type": "document.signed",
+                        "createdAt": "2026-11-23T07:34:09.917Z"
+                      }
+                    ],
+                    "summary": "200 OK"
+                  }
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": {
+                  "400_Bad_request": {
+                    "value": {
+                      "error": "Pass ?event=document.viewed | document.signed | document.completed"
+                    },
+                    "summary": "400 Bad request"
+                  }
+                }
+              }
+            },
+            "description": "Bad Request"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "event",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "document.completed"
+              ]
+            },
+            "example": "document.completed",
+            "description": "Fixed for this trigger."
+          }
+        ],
+        "description": "Zapier calls this to load sample **Document Completed** events while the user maps fields in the Zap editor. Each event has the same shape as the webhook Agreed sends.",
+        "operationId": "zapierPerformListDocumentCompleted",
+        "x-fern-sdk-group-name": [
+          "Zapier",
+          "Document Completed"
+        ],
+        "x-fern-sdk-method-name": "Perform List (sample data)"
+      }
+    },
+    "/api/v1/hooks#zapierSubscribeRecipientSigned": {
+      "post": {
+        "tags": [
+          "Zapier"
+        ],
+        "summary": "Subscribe (Zap turned on)",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "url",
+                    "event",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "event": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
+                "examples": {
+                  "201_Created": {
+                    "value": {
+                      "id": "cmwsy9ji40001jzeyuno2yuxp",
+                      "url": "https://hooks.zapier.com/hooks/standard/123/abc/",
+                      "event": "document.signed",
+                      "createdAt": "2026-11-23T07:34:09.917Z"
+                    },
+                    "summary": "201 Created"
+                  }
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": {
+                  "400_Bad_request": {
+                    "value": {
+                      "error": "Send { hookUrl, event } where event is one of: document.viewed, document.signed, document.completed."
+                    },
+                    "summary": "400 Bad request"
+                  }
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": {
+                  "401_Unauthorized": {
+                    "value": {
+                      "error": "invalid_token",
+                      "error_description": "Missing, invalid or expired access token."
+                    },
+                    "summary": "401 Unauthorized"
+                  }
+                }
+              }
+            },
+            "description": "Unauthorized"
+          }
+        },
+        "description": "**Zapier trigger `recipient_signed`** (REST Hook): Triggers when a recipient finishes signing a document.\n\nZapier sends this when a user turns on a Zap that uses **Recipient Signed**. In Zapier the body is `{ \"hookUrl\": \"{{bundle.targetUrl}}\", \"event\": \"document.signed\" }`; the returned `id` becomes `{{bundle.subscribeData.id}}`.",
+        "operationId": "zapierSubscribeRecipientSigned",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "hookUrl",
+                  "event"
+                ],
+                "properties": {
+                  "event": {
+                    "type": "string",
+                    "enum": [
+                      "document.signed"
+                    ],
+                    "description": "Fixed for this trigger."
+                  },
+                  "hookUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              },
+              "example": {
+                "hookUrl": "https://hooks.zapier.com/hooks/standard/123/abc/",
+                "event": "document.signed"
+              }
+            }
+          }
+        },
+        "x-fern-sdk-group-name": [
+          "Zapier",
+          "Recipient Signed"
+        ],
+        "x-fern-sdk-method-name": "Subscribe (Zap turned on)"
+      }
+    },
+    "/api/v1/hooks/{hookId}#zapierUnsubscribeRecipientSigned": {
+      "delete": {
+        "tags": [
+          "Zapier"
+        ],
+        "summary": "Unsubscribe (Zap turned off)",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "examples": {
+                  "200_OK": {
+                    "value": {
+                      "ok": true
+                    },
+                    "summary": "200 OK"
+                  }
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "description": "Zapier sends this when the Zap is turned off or deleted. In Zapier the URL is `/api/v1/hooks/{{bundle.subscribeData.id}}`.",
+        "operationId": "zapierUnsubscribeRecipientSigned",
+        "x-fern-sdk-group-name": [
+          "Zapier",
+          "Recipient Signed"
+        ],
+        "x-fern-sdk-method-name": "Unsubscribe (Zap turned off)",
+        "parameters": [
+          {
+            "name": "hookId",
+            "in": "path",
+            "required": true,
+            "description": "The `id` returned by Subscribe.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "cmwsy9ji40001jzeyuno2yuxp"
+          }
+        ]
+      }
+    },
+    "/api/v1/hooks/sample#zapierPerformListRecipientSigned": {
+      "get": {
+        "tags": [
+          "Zapier"
+        ],
+        "summary": "Perform List (sample data)",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "type",
+                      "createdAt",
+                      "data"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "data": {
+                        "type": "object",
+                        "required": [
+                          "document",
+                          "recipient"
+                        ],
+                        "properties": {
+                          "document": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "name",
+                              "status",
+                              "url"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string",
+                                "format": "uri"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "recipient": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "email",
+                              "firstName",
+                              "lastName",
+                              "viewedAt",
+                              "signedAt"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "email": {
+                                "type": "string",
+                                "format": "email"
+                              },
+                              "lastName": {
+                                "type": "string"
+                              },
+                              "signedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "viewedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "firstName": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "200_OK": {
+                    "value": [
+                      {
+                        "id": "cmwsy9ji40001jzeyuno2yuxp",
+                        "data": {
+                          "document": {
+                            "id": "cmdoc123",
+                            "url": "https://agreed.net/documents/cmdoc123",
+                            "name": "Non-Disclosure Agreement",
+                            "status": "sent"
+                          },
+                          "recipient": {
+                            "id": "cmrcp456",
+                            "email": "jane@example.com",
+                            "lastName": "Doe",
+                            "signedAt": "2026-11-23T07:34:09.000Z",
+                            "viewedAt": "2026-11-23T07:30:00.000Z",
+                            "firstName": "Jane"
+                          }
+                        },
+                        "type": "document.signed",
+                        "createdAt": "2026-11-23T07:34:09.917Z"
+                      }
+                    ],
+                    "summary": "200 OK"
+                  }
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": {
+                  "400_Bad_request": {
+                    "value": {
+                      "error": "Pass ?event=document.viewed | document.signed | document.completed"
+                    },
+                    "summary": "400 Bad request"
+                  }
+                }
+              }
+            },
+            "description": "Bad Request"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "event",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "document.signed"
+              ]
+            },
+            "example": "document.signed",
+            "description": "Fixed for this trigger."
+          }
+        ],
+        "description": "Zapier calls this to load sample **Recipient Signed** events while the user maps fields in the Zap editor. Each event has the same shape as the webhook Agreed sends.",
+        "operationId": "zapierPerformListRecipientSigned",
+        "x-fern-sdk-group-name": [
+          "Zapier",
+          "Recipient Signed"
+        ],
+        "x-fern-sdk-method-name": "Perform List (sample data)"
+      }
+    },
+    "/api/v1/hooks#zapierSubscribeDocumentViewed": {
+      "post": {
+        "tags": [
+          "Zapier"
+        ],
+        "summary": "Subscribe (Zap turned on)",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "url",
+                    "event",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "event": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
+                "examples": {
+                  "201_Created": {
+                    "value": {
+                      "id": "cmwsy9ji40001jzeyuno2yuxp",
+                      "url": "https://hooks.zapier.com/hooks/standard/123/abc/",
+                      "event": "document.viewed",
+                      "createdAt": "2026-11-23T07:34:09.917Z"
+                    },
+                    "summary": "201 Created"
+                  }
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": {
+                  "400_Bad_request": {
+                    "value": {
+                      "error": "Send { hookUrl, event } where event is one of: document.viewed, document.signed, document.completed."
+                    },
+                    "summary": "400 Bad request"
+                  }
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": {
+                  "401_Unauthorized": {
+                    "value": {
+                      "error": "invalid_token",
+                      "error_description": "Missing, invalid or expired access token."
+                    },
+                    "summary": "401 Unauthorized"
+                  }
+                }
+              }
+            },
+            "description": "Unauthorized"
+          }
+        },
+        "description": "**Zapier trigger `document_viewed`** (REST Hook): Triggers when a recipient opens a document for the first time.\n\nZapier sends this when a user turns on a Zap that uses **Document Viewed**. In Zapier the body is `{ \"hookUrl\": \"{{bundle.targetUrl}}\", \"event\": \"document.viewed\" }`; the returned `id` becomes `{{bundle.subscribeData.id}}`.",
+        "operationId": "zapierSubscribeDocumentViewed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "hookUrl",
+                  "event"
+                ],
+                "properties": {
+                  "event": {
+                    "type": "string",
+                    "enum": [
+                      "document.viewed"
+                    ],
+                    "description": "Fixed for this trigger."
+                  },
+                  "hookUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              },
+              "example": {
+                "hookUrl": "https://hooks.zapier.com/hooks/standard/123/abc/",
+                "event": "document.viewed"
+              }
+            }
+          }
+        },
+        "x-fern-sdk-group-name": [
+          "Zapier",
+          "Document Viewed"
+        ],
+        "x-fern-sdk-method-name": "Subscribe (Zap turned on)"
+      }
+    },
+    "/api/v1/hooks/{hookId}#zapierUnsubscribeDocumentViewed": {
+      "delete": {
+        "tags": [
+          "Zapier"
+        ],
+        "summary": "Unsubscribe (Zap turned off)",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "examples": {
+                  "200_OK": {
+                    "value": {
+                      "ok": true
+                    },
+                    "summary": "200 OK"
+                  }
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "description": "Zapier sends this when the Zap is turned off or deleted. In Zapier the URL is `/api/v1/hooks/{{bundle.subscribeData.id}}`.",
+        "operationId": "zapierUnsubscribeDocumentViewed",
+        "x-fern-sdk-group-name": [
+          "Zapier",
+          "Document Viewed"
+        ],
+        "x-fern-sdk-method-name": "Unsubscribe (Zap turned off)",
+        "parameters": [
+          {
+            "name": "hookId",
+            "in": "path",
+            "required": true,
+            "description": "The `id` returned by Subscribe.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "cmwsy9ji40001jzeyuno2yuxp"
+          }
+        ]
+      }
+    },
+    "/api/v1/hooks/sample#zapierPerformListDocumentViewed": {
+      "get": {
+        "tags": [
+          "Zapier"
+        ],
+        "summary": "Perform List (sample data)",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "type",
+                      "createdAt",
+                      "data"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "data": {
+                        "type": "object",
+                        "required": [
+                          "document",
+                          "recipient"
+                        ],
+                        "properties": {
+                          "document": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "name",
+                              "status",
+                              "url"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string",
+                                "format": "uri"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "recipient": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "email",
+                              "firstName",
+                              "lastName",
+                              "viewedAt",
+                              "signedAt"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "email": {
+                                "type": "string",
+                                "format": "email"
+                              },
+                              "lastName": {
+                                "type": "string"
+                              },
+                              "signedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "viewedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "firstName": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "200_OK": {
+                    "value": [
+                      {
+                        "id": "cmwsy9ji40001jzeyuno2yuxp",
+                        "data": {
+                          "document": {
+                            "id": "cmdoc123",
+                            "url": "https://agreed.net/documents/cmdoc123",
+                            "name": "Non-Disclosure Agreement",
+                            "status": "sent"
+                          },
+                          "recipient": {
+                            "id": "cmrcp456",
+                            "email": "jane@example.com",
+                            "lastName": "Doe",
+                            "signedAt": "2026-11-23T07:34:09.000Z",
+                            "viewedAt": "2026-11-23T07:30:00.000Z",
+                            "firstName": "Jane"
+                          }
+                        },
+                        "type": "document.signed",
+                        "createdAt": "2026-11-23T07:34:09.917Z"
+                      }
+                    ],
+                    "summary": "200 OK"
+                  }
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": {
+                  "400_Bad_request": {
+                    "value": {
+                      "error": "Pass ?event=document.viewed | document.signed | document.completed"
+                    },
+                    "summary": "400 Bad request"
+                  }
+                }
+              }
+            },
+            "description": "Bad Request"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "event",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "document.viewed"
+              ]
+            },
+            "example": "document.viewed",
+            "description": "Fixed for this trigger."
+          }
+        ],
+        "description": "Zapier calls this to load sample **Document Viewed** events while the user maps fields in the Zap editor. Each event has the same shape as the webhook Agreed sends.",
+        "operationId": "zapierPerformListDocumentViewed",
+        "x-fern-sdk-group-name": [
+          "Zapier",
+          "Document Viewed"
+        ],
+        "x-fern-sdk-method-name": "Perform List (sample data)"
       }
     }
   },
