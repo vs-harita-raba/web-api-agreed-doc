@@ -1,0 +1,1151 @@
+{
+  "info": {
+    "name": "Agreed API",
+    "description": "The Agreed API is organized around REST. It has predictable resource-oriented URLs, accepts JSON-encoded request bodies (OAuth endpoints also accept form-encoded bodies), returns JSON, and uses standard HTTP response codes and verbs.\n\n**Base URL:** `https://agreed.net`\n\n## We support two integration pathways\n\n1. **Zapier, ChatGPT, Claude and other apps:** OAuth 2.0 (authorization code flow, with refresh tokens).\n2. **Custom scripts and direct API requests:** a personal API key (Bearer token).\n\n---\n\n## 🔑 Authentication\n\nEvery API request sends a Bearer token in the `Authorization` header:\n\n```\nAuthorization: Bearer <token>\n```\n\nThe token is either an **OAuth access token** (starts with `agrat_`) or a **personal API key** (starts with `agr_`). Both identify the same Agreed account and have the same access.\n\n### 1. Personal API key\n\nFor scripts or direct REST requests.\n\n**How to get your API key:**\n1. Log in to your Agreed account.\n2. Go to **Settings → Integrations → Claude**.\n3. Create a new key and copy it. It is shown only once.\n4. Send it as `Authorization: Bearer agr_…`\n\nKeys don't expire. Delete a key in the same place to revoke it.\n\n### 2. OAuth 2.0 (Zapier and other apps)\n\nAgreed is a standard OAuth 2.0 authorization server.\n\n| | |\n|---|---|\n| Discovery document | `GET /.well-known/oauth-authorization-server` |\n| Authorization URL | `https://agreed.net/oauth/authorize` |\n| Token URL | `https://agreed.net/api/oauth/token` |\n| Revocation URL | `https://agreed.net/api/oauth/revoke` |\n| Scope | `mcp` |\n| Grant types | `authorization_code`, `refresh_token` |\n| PKCE | `S256`. Required for public clients (no secret); optional for confidential clients (with a client secret) |\n| Access token lifetime | 1 hour (`expires_in: 3600`) |\n| Refresh token lifetime | 30 days. Refresh tokens rotate: each refresh returns a new pair and the old refresh token stops working |\n\n**Flow:**\n1. Send the user to the Authorization URL. They sign in to Agreed and click **Allow** on the consent screen.\n2. Agreed redirects back to your `redirect_uri` with `?code=…&state=…`.\n3. Exchange the code at the Token URL for an `access_token` and `refresh_token`.\n4. Call the API with `Authorization: Bearer <access_token>`. When it expires, use the refresh token.\n\nUsers can disconnect an app at any time in **Settings → Integrations**.\n\n---\n\n## ⚡ Webhooks (instant triggers)\n\nSubscribe a URL to an event and Agreed sends a `POST` to it with JSON every time the event happens.\n\n| Event | When |\n|---|---|\n| `document.viewed` | A recipient opened the document for the first time |\n| `document.signed` | A recipient finished signing their part |\n| `document.completed` | Every recipient has signed |\n\n**Delivery:**\n- `POST` with `Content-Type: application/json`, `User-Agent: Agreed-Webhooks/1.0`\n- Headers `X-Agreed-Event` (event type), `X-Agreed-Delivery` (delivery id), `X-Agreed-Signature`\n- Any 2xx response counts as delivered. Otherwise Agreed retries after 5 seconds and again after 30 seconds. The timeout is 10 seconds per attempt.\n- Each event is sent once per subscription. Use the payload `id` to de-duplicate.\n\n**Signature:** `X-Agreed-Signature: t=<unix seconds>,v1=<hex>`, where `v1 = HMAC-SHA256(secret, \"<t>.<raw body>\")`. The signing secret of an endpoint is shown in **Settings → Integrations → Webhooks**.\n\n**Payload:**\n```json\n{\n  \"id\": \"cmwsy9ji40001jzeyuno2yuxp\",\n  \"type\": \"document.signed\",\n  \"createdAt\": \"2026-11-23T07:34:09.917Z\",\n  \"data\": {\n    \"document\": { \"id\": \"…\", \"name\": \"Non-Disclosure Agreement\", \"status\": \"sent\", \"url\": \"https://agreed.net/documents/…\" },\n    \"recipient\": { \"id\": \"…\", \"email\": \"jane@example.com\", \"firstName\": \"Jane\", \"lastName\": \"Doe\", \"viewedAt\": \"…\", \"signedAt\": \"…\" }\n  }\n}\n```\n`document.completed` has no `recipient` object.\n\n---\n\n## Errors\n\nErrors return a JSON body `{ \"error\": \"...\", \"error_description\": \"...\" }` (or `{ \"error\": \"...\" }`).\n\n| Code | Meaning |\n|---|---|\n| 200 / 201 | Success |\n| 400 | Invalid request (missing or wrong parameters) |\n| 401 | Missing, invalid or expired token (`invalid_token`) or bad client credentials (`invalid_client`) |\n| 404 | Not found |\n| 429 | Too many requests. Slow down and retry |\n| 500 | Something went wrong on our side |\n\n## Rate limits\n\n- Token endpoint: 60 requests per minute per IP\n- Webhook subscriptions: 30 per minute per account; at most 50 webhook endpoints per account\n",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://agreed.net"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication (OAuth 2.0)",
+      "description": "Standard OAuth 2.0 authorization code flow. These requests don't use the Bearer token.",
+      "item": [
+        {
+          "name": "Authorization server metadata",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/.well-known/oauth-authorization-server",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ".well-known",
+                "oauth-authorization-server"
+              ]
+            },
+            "description": "OAuth 2.0 server metadata (RFC 8414): every endpoint URL and the supported grants, PKCE methods and scopes."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/.well-known/oauth-authorization-server",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    ".well-known",
+                    "oauth-authorization-server"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"issuer\": \"https://agreed.net\",\n  \"authorization_endpoint\": \"https://agreed.net/oauth/authorize\",\n  \"token_endpoint\": \"https://agreed.net/api/oauth/token\",\n  \"registration_endpoint\": \"https://agreed.net/api/oauth/register\",\n  \"revocation_endpoint\": \"https://agreed.net/api/oauth/revoke\",\n  \"response_types_supported\": [\n    \"code\"\n  ],\n  \"grant_types_supported\": [\n    \"authorization_code\",\n    \"refresh_token\"\n  ],\n  \"code_challenge_methods_supported\": [\n    \"S256\"\n  ],\n  \"token_endpoint_auth_methods_supported\": [\n    \"none\",\n    \"client_secret_post\",\n    \"client_secret_basic\"\n  ],\n  \"scopes_supported\": [\n    \"mcp\"\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Authorize (browser redirect)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oauth/authorize?response_type=code&client_id={{clientId}}&redirect_uri={{redirectUri}}&scope=mcp&state=random-state-123",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oauth",
+                "authorize"
+              ],
+              "query": [
+                {
+                  "key": "response_type",
+                  "value": "code",
+                  "description": "Always `code`."
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{clientId}}",
+                  "description": "Your OAuth client id."
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "{{redirectUri}}",
+                  "description": "Must exactly match a redirect URI registered for the client."
+                },
+                {
+                  "key": "scope",
+                  "value": "mcp",
+                  "description": "Always `mcp`."
+                },
+                {
+                  "key": "state",
+                  "value": "random-state-123",
+                  "description": "Opaque value returned unchanged. Use it to prevent CSRF."
+                },
+                {
+                  "key": "code_challenge",
+                  "value": "{{codeChallenge}}",
+                  "description": "PKCE challenge: base64url(SHA-256(code_verifier)). Required for public clients; optional when you have a client secret.",
+                  "disabled": true
+                },
+                {
+                  "key": "code_challenge_method",
+                  "value": "S256",
+                  "description": "Required with `code_challenge`. Only `S256` is supported.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Open this URL **in a browser**. It isn't an API call. The user signs in to Agreed (if needed) and sees a consent screen. On **Allow**, Agreed redirects to:\n\n```\n{redirect_uri}?code=agrac_…&state=random-state-123\n```\n\nOn **Deny**: `{redirect_uri}?error=access_denied&state=…`\n\nThe code is single-use and expires after 10 minutes."
+          },
+          "response": []
+        },
+        {
+          "name": "Exchange code for tokens",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/oauth/token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "oauth",
+                "token"
+              ]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "authorization_code",
+                  "description": "Always `authorization_code`.",
+                  "type": "text"
+                },
+                {
+                  "key": "code",
+                  "value": "{{authCode}}",
+                  "description": "The `code` from the redirect.",
+                  "type": "text"
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "{{redirectUri}}",
+                  "description": "Same redirect_uri as in the authorize step.",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{clientId}}",
+                  "description": "Your client id. Or send client_id/secret with HTTP Basic auth.",
+                  "type": "text"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{clientSecret}}",
+                  "description": "Your client secret (confidential clients).",
+                  "type": "text"
+                },
+                {
+                  "key": "code_verifier",
+                  "value": "{{codeVerifier}}",
+                  "description": "PKCE verifier (43-128 chars). Required if a code_challenge was sent.",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Swaps the authorization code for an access token and a refresh token. Accepts `application/x-www-form-urlencoded` (standard) or JSON."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/x-www-form-urlencoded"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/oauth/token",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "oauth",
+                    "token"
+                  ]
+                },
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": [
+                    {
+                      "key": "grant_type",
+                      "value": "authorization_code",
+                      "description": "Always `authorization_code`.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "code",
+                      "value": "{{authCode}}",
+                      "description": "The `code` from the redirect.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "redirect_uri",
+                      "value": "{{redirectUri}}",
+                      "description": "Same redirect_uri as in the authorize step.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_id",
+                      "value": "{{clientId}}",
+                      "description": "Your client id. Or send client_id/secret with HTTP Basic auth.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_secret",
+                      "value": "{{clientSecret}}",
+                      "description": "Your client secret (confidential clients).",
+                      "type": "text"
+                    },
+                    {
+                      "key": "code_verifier",
+                      "value": "{{codeVerifier}}",
+                      "description": "PKCE verifier (43-128 chars). Required if a code_challenge was sent.",
+                      "type": "text",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"access_token\": \"agrat_…\",\n  \"token_type\": \"Bearer\",\n  \"expires_in\": 3600,\n  \"refresh_token\": \"agrrt_…\",\n  \"scope\": \"mcp\"\n}"
+            },
+            {
+              "name": "400 Invalid grant",
+              "originalRequest": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/x-www-form-urlencoded"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/oauth/token",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "oauth",
+                    "token"
+                  ]
+                },
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": [
+                    {
+                      "key": "grant_type",
+                      "value": "authorization_code",
+                      "description": "Always `authorization_code`.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "code",
+                      "value": "{{authCode}}",
+                      "description": "The `code` from the redirect.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "redirect_uri",
+                      "value": "{{redirectUri}}",
+                      "description": "Same redirect_uri as in the authorize step.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_id",
+                      "value": "{{clientId}}",
+                      "description": "Your client id. Or send client_id/secret with HTTP Basic auth.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_secret",
+                      "value": "{{clientSecret}}",
+                      "description": "Your client secret (confidential clients).",
+                      "type": "text"
+                    },
+                    {
+                      "key": "code_verifier",
+                      "value": "{{codeVerifier}}",
+                      "description": "PKCE verifier (43-128 chars). Required if a code_challenge was sent.",
+                      "type": "text",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"invalid_grant\",\n  \"error_description\": \"Authorization code already used.\"\n}"
+            },
+            {
+              "name": "401 Invalid client",
+              "originalRequest": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/x-www-form-urlencoded"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/oauth/token",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "oauth",
+                    "token"
+                  ]
+                },
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": [
+                    {
+                      "key": "grant_type",
+                      "value": "authorization_code",
+                      "description": "Always `authorization_code`.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "code",
+                      "value": "{{authCode}}",
+                      "description": "The `code` from the redirect.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "redirect_uri",
+                      "value": "{{redirectUri}}",
+                      "description": "Same redirect_uri as in the authorize step.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_id",
+                      "value": "{{clientId}}",
+                      "description": "Your client id. Or send client_id/secret with HTTP Basic auth.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_secret",
+                      "value": "{{clientSecret}}",
+                      "description": "Your client secret (confidential clients).",
+                      "type": "text"
+                    },
+                    {
+                      "key": "code_verifier",
+                      "value": "{{codeVerifier}}",
+                      "description": "PKCE verifier (43-128 chars). Required if a code_challenge was sent.",
+                      "type": "text",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"invalid_client\",\n  \"error_description\": \"Unknown client or bad credentials.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Refresh access token",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/oauth/token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "oauth",
+                "token"
+              ]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "refresh_token",
+                  "description": "Always `refresh_token`.",
+                  "type": "text"
+                },
+                {
+                  "key": "refresh_token",
+                  "value": "{{refreshToken}}",
+                  "description": "The current refresh token.",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{clientId}}",
+                  "description": "",
+                  "type": "text"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{clientSecret}}",
+                  "description": "",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "Returns a **new** access token **and a new refresh token**. The old refresh token stops working immediately, so always store the new one."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/x-www-form-urlencoded"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/oauth/token",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "oauth",
+                    "token"
+                  ]
+                },
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": [
+                    {
+                      "key": "grant_type",
+                      "value": "refresh_token",
+                      "description": "Always `refresh_token`.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "refresh_token",
+                      "value": "{{refreshToken}}",
+                      "description": "The current refresh token.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_id",
+                      "value": "{{clientId}}",
+                      "description": "",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_secret",
+                      "value": "{{clientSecret}}",
+                      "description": "",
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"access_token\": \"agrat_…\",\n  \"token_type\": \"Bearer\",\n  \"expires_in\": 3600,\n  \"refresh_token\": \"agrrt_…\",\n  \"scope\": \"mcp\"\n}"
+            },
+            {
+              "name": "400 Invalid grant",
+              "originalRequest": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/x-www-form-urlencoded"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/oauth/token",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "oauth",
+                    "token"
+                  ]
+                },
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": [
+                    {
+                      "key": "grant_type",
+                      "value": "refresh_token",
+                      "description": "Always `refresh_token`.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "refresh_token",
+                      "value": "{{refreshToken}}",
+                      "description": "The current refresh token.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_id",
+                      "value": "{{clientId}}",
+                      "description": "",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_secret",
+                      "value": "{{clientSecret}}",
+                      "description": "",
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"invalid_grant\",\n  \"error_description\": \"Invalid or expired refresh token.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Revoke token",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/oauth/revoke",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "oauth",
+                "revoke"
+              ]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "description": "An access token or a refresh token. Revoking either one invalidates both tokens of that pair.",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{clientId}}",
+                  "description": "",
+                  "type": "text"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{clientSecret}}",
+                  "description": "",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "Disconnects the app (RFC 7009). Returns `200` with an empty body, including when the token was already invalid."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/x-www-form-urlencoded"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/oauth/revoke",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "oauth",
+                    "revoke"
+                  ]
+                },
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "description": "An access token or a refresh token. Revoking either one invalidates both tokens of that pair.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_id",
+                      "value": "{{clientId}}",
+                      "description": "",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_secret",
+                      "value": "{{clientSecret}}",
+                      "description": "",
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Account",
+      "description": "The signed-in account.",
+      "item": [
+        {
+          "name": "Get current user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me"
+              ]
+            },
+            "description": "Returns the Agreed account the token belongs to. Use it to test a connection, or to label it in your app (e.g. by email)."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "me"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"cmabc123def456\",\n  \"email\": \"jane@acme.com\",\n  \"name\": \"Jane Doe\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "me"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"invalid_token\",\n  \"error_description\": \"Missing, invalid or expired access token.\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "description": "REST-hook subscriptions for instant triggers. See the collection overview for the payload format and signature.",
+      "item": [
+        {
+          "name": "Subscribe to an event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hooks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hooks"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hookUrl\": \"https://hooks.zapier.com/hooks/standard/123/abc/\",\n  \"event\": \"document.completed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Registers a URL to receive one event type (REST hook). Keep the returned `id`; you need it to unsubscribe.\n\n| Field | Type | |\n|---|---|---|\n| `hookUrl` | string, required | Public `https://` URL that receives the POSTs. (`url` is accepted as an alias.) |\n| `event` | string, required | `document.viewed`, `document.signed` or `document.completed` |\n\nThe subscription also appears in **Settings → Integrations → Webhooks**, where the user can see deliveries or remove it."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"hookUrl\": \"https://hooks.zapier.com/hooks/standard/123/abc/\",\n  \"event\": \"document.completed\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"cmwsy9ji40001jzeyuno2yuxp\",\n  \"url\": \"https://hooks.zapier.com/hooks/standard/123/abc/\",\n  \"event\": \"document.completed\",\n  \"createdAt\": \"2026-11-23T07:34:09.917Z\"\n}"
+            },
+            {
+              "name": "400 Bad request",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"hookUrl\": \"https://hooks.zapier.com/hooks/standard/123/abc/\",\n  \"event\": \"document.completed\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Send { hookUrl, event } where event is one of: document.viewed, document.signed, document.completed.\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"hookUrl\": \"https://hooks.zapier.com/hooks/standard/123/abc/\",\n  \"event\": \"document.completed\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"invalid_token\",\n  \"error_description\": \"Missing, invalid or expired access token.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Unsubscribe",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hooks/{{hookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hooks",
+                "{{hookId}}"
+              ]
+            },
+            "description": "Removes a subscription by the `id` returned from Subscribe. It succeeds even if the subscription is already gone."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks/{{hookId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks",
+                    "{{hookId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"ok\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "List recent events (sample data)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hooks/sample?event=document.signed",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hooks",
+                "sample"
+              ],
+              "query": [
+                {
+                  "key": "event",
+                  "value": "document.signed",
+                  "description": "`document.viewed`, `document.signed` or `document.completed`"
+                }
+              ]
+            },
+            "description": "Returns up to 3 recent events of that type for the account, newest first, in exactly the webhook payload format. With no events yet, it returns one example event. Use it to map fields before a real event arrives."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks/sample?event=document.signed",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks",
+                    "sample"
+                  ],
+                  "query": [
+                    {
+                      "key": "event",
+                      "value": "document.signed",
+                      "description": "`document.viewed`, `document.signed` or `document.completed`"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"id\": \"cmwsy9ji40001jzeyuno2yuxp\",\n    \"type\": \"document.signed\",\n    \"createdAt\": \"2026-11-23T07:34:09.917Z\",\n    \"data\": {\n      \"document\": {\n        \"id\": \"cmdoc123\",\n        \"name\": \"Non-Disclosure Agreement\",\n        \"status\": \"sent\",\n        \"url\": \"https://agreed.net/documents/cmdoc123\"\n      },\n      \"recipient\": {\n        \"id\": \"cmrcp456\",\n        \"email\": \"jane@example.com\",\n        \"firstName\": \"Jane\",\n        \"lastName\": \"Doe\",\n        \"viewedAt\": \"2026-11-23T07:30:00.000Z\",\n        \"signedAt\": \"2026-11-23T07:34:09.000Z\"\n      }\n    }\n  }\n]"
+            },
+            {
+              "name": "400 Bad request",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hooks/sample?event=document.signed",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hooks",
+                    "sample"
+                  ],
+                  "query": [
+                    {
+                      "key": "event",
+                      "value": "document.signed",
+                      "description": "`document.viewed`, `document.signed` or `document.completed`"
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Pass ?event=document.viewed | document.signed | document.completed\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
